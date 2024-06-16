@@ -21,7 +21,7 @@ type routes struct {
 }
 
 func load_routes() ([]byte, error) {
-	file_data, err := os.ReadFile("../routes.json")
+	file_data, err := os.ReadFile("routes.json")
 	if err != nil {
 		return nil, err
 	} else {
@@ -53,17 +53,17 @@ func add_route(path string, dest string, r *gin.Engine) {
 		log.Fatalf("unable to define route:'%s'", path)
 	}
 
-	r.Any(path+"/:params", func(c *gin.Context) {
+	r.Any(path+"/*params", func(c *gin.Context) {
 		params := c.Param("params")
 
 		// Создаем новый HTTP-клиент
 		client := &http.Client{}
 
 		// Создаем новый запрос на основе исходного запроса
-		req, err := http.NewRequest(c.Request.Method, dest+"/"+params, c.Request.Body)
+		req, err := http.NewRequest(c.Request.Method, dest+params, c.Request.Body)
 		if err != nil {
 			log.Fatalf("error creating request: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -77,8 +77,8 @@ func add_route(path string, dest string, r *gin.Engine) {
 		// Отправляем новый запрос
 		resp, err := client.Do(req)
 		if err != nil {
-			log.Fatalf("error sending request: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			fmt.Printf(fmt.Sprintf("error sending request: %v", err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		defer resp.Body.Close()
@@ -86,8 +86,8 @@ func add_route(path string, dest string, r *gin.Engine) {
 		// Читаем тело ответа
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatalf("error reading response body: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			fmt.Printf(fmt.Sprintf("error reading response body: %v", err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 

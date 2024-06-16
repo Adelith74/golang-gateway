@@ -1,8 +1,8 @@
 {
-    "auth": "http://localhost:8000/api/v1/auth/",
-    "routes": "http://localhost:8001/",
-    "hotels": "http://localhost:8002/",
-    "events": "http://localhost:8003/",
-    "booking": "http://localhost:8004/",
-    "transport": "http://localhost:8005/"
+    "auth": "http://localhost:8000/api/v1/auth",
+    "routes": "http://localhost:8001",
+    "hotels": "http://localhost:8002",
+    "events": "http://localhost:8003",
+    "booking": "http://localhost:8004",
+    "transport": "http://localhost:8005"
 }
