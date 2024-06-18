@@ -1,13 +1,18 @@
 package main
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,6 +23,30 @@ type routes struct {
 	Events    string `json:"events"`
 	Booking   string `json:"booking"`
 	Transport string `json:"transport"`
+}
+
+func loadPublicKey(publicKeyFile string) (*rsa.PublicKey, error) {
+	keyData, err := os.ReadFile(publicKeyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(keyData)
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block containing the public key")
+	}
+
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	rsaPubKey, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse RSA public key")
+	}
+
+	return rsaPubKey, nil
 }
 
 func load_routes() ([]byte, error) {
@@ -52,9 +81,27 @@ func add_route(path string, dest string, r *gin.Engine) {
 	if path == "" || dest == "" {
 		log.Fatalf("unable to define route:'%s'", path)
 	}
-
 	r.Any(path+"/*params", func(c *gin.Context) {
 		params := c.Param("params")
+
+		if path != "/auth" {
+			clientPublicSecret, err := loadPublicKey("client_public_secret.txt")
+			if err != nil {
+				fmt.Print(err.Error())
+				return
+			}
+			tokenString := c.GetHeader("Authorization")
+			tokenString = strings.Split(tokenString, ":")[1]
+			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+				return clientPublicSecret, nil
+			})
+
+			if err != nil || !token.Valid {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+				return
+			}
+
+		}
 
 		// Создаем новый HTTP-клиент
 		client := &http.Client{}
@@ -73,7 +120,9 @@ func add_route(path string, dest string, r *gin.Engine) {
 				req.Header.Add(key, value)
 			}
 		}
+		fmt.Println(req)
 
+		fmt.Println(req.URL)
 		// Отправляем новый запрос
 		resp, err := client.Do(req)
 		if err != nil {

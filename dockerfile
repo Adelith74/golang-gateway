@@ -11,6 +11,7 @@ RUN go mod download
 # https://docs.docker.com/reference/dockerfile/#copy
 COPY ./cmd/*.go ./
 COPY routes.json ./
+COPY client_public_secret.txt ./
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux go build -o /gateway
